@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 from lxml import etree
@@ -13,7 +13,7 @@ import argparse
 version = "2.1.0"
 citiescsv = 'cities.csv'
 defaultcity = {'en':'harkov', 'ru': 'Харьков'}
-defsitemap = 'sitemap-companies_test_col.xml'  # Change filename to your jobs.dou.ua/sitemap-companies.xml
+defsitemap = 'sitemap-companies_test.xml'  # Change filename to your jobs.dou.ua/sitemap-companies.xml
 defresfile = 'results.xlsx'
 
 def main():
@@ -23,21 +23,20 @@ def main():
         citylist = list(csv.reader(open(citiescsv), delimiter=";"))
     except:
         citylist = [[city['en'], city['ru']]]
-        print citylist
-        print "Erorr with: \""+citiescsv+"\". Used default city: "+city['en']    
+        print("Erorr (2) with: \""+citiescsv+"\". Used default city: "+city['en'])
     argparser = createParser([i[0] for i in citylist], defaultcity)
     params = argparser.parse_args(sys.argv[1:])
-    try:
-        if params.city is None:
-            city = askcity(citylist, defaultcity)
-        else:
+    if params.city is None:
+        city = askcity(citylist, defaultcity)
+    else:
+        try:
             city['en'] = params.city
             city['ru'] = [i[1] for i in citylist if i[0] == city['en']][0]
-    except:
-        print "\nError!"
-        print "Somthing wrong with \""+citiescsv+"\" structure."
-        print "Check please."
-        exit(3)
+        except:
+            print("\nError! (3)")
+            print("Somthing wrong with \""+citiescsv+"\"")
+            print("Check please.")
+            exit(3)
     dou = dou_parser(city)
     wb = Workbook()
     ws = wb.active
@@ -47,28 +46,28 @@ def main():
     try:
         urllist = list(set(dou.geturls(params.sitemap)))
     except:
-        print "\nError!"
-        print "Somthing wrong with sitemap file: \""+params.sitemap+"\""
-        print "Check please."
+        print("\nError! (4)")
+        print("Somthing wrong with sitemap file: \""+params.sitemap+"\"")
+        print("Check please.")
         exit(4)
         
     # Grabbing begins
     urllistlen = len(urllist)
     starttime = datetime.now()
     resfile = params.resfile
-    print "Go!"
-    print "Loking for offices in", city['ru']
+    print("Go!")
+    print("Loking for offices in", city['ru'])
     for i, url in enumerate(urllist):
         result = dou.grabinfo(url)
         if result is not None:
             ws.append(result)
             wb.save(resfile)
-        print "Progres: ", i + 1," out of ", urllistlen,"| url: ",  url
-    print "\nDone!"
-    print "Parser strted at: ", starttime.strftime("%Y-%m-%d %H:%M:%S")
-    print "Finished at:      ", datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print "Elapsed time:     ", datetime.now() - starttime
-    print "\nResults was written into:", resfile
+        print("Progres: ", i + 1," out of ", urllistlen,"| url: ",  url)
+    print("\nDone!")
+    print("Parser strted at: ", starttime.strftime("%Y-%m-%d %H:%M:%S"))
+    print("Finished at:      ", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    print("Elapsed time:     ", datetime.now() - starttime)
+    print("\nResults was written into:", resfile)
 
 def createParser (cities, defcity):
     parser = argparse.ArgumentParser(
@@ -98,28 +97,34 @@ def createParser (cities, defcity):
 def askcity(cities, defcity):
     # User menu
     city = defcity
-    print "Hi!"
+    print("Hi!")
     while True:
-        print "Choose city, please. (\""+defcity['ru']+"\" is default, just press \"Enter\")"
-        for i, rec in enumerate(cities):
-            print i+1, "-", rec[1]
-        print "Enter 0 for exit"        
-        citynumber = raw_input ("\nEnter the number of city: ")
+        print("Choose city, please. (\""+defcity['ru']+"\" is default, just press \"Enter\")")
+        try:
+            for i, rec in enumerate(cities):
+                print(i+1, "-", rec[1])
+        except:
+            print("\nError! (5)")
+            print("Somthing wrong with \""+citiescsv+"\"")
+            print("Check please.")
+            exit(5)
+        print("Enter 0 for exit")
+        citynumber = input("\nEnter the number of city: ")  # raw_input() in Python 2.7
         if len(citynumber) == 0:
             break
         try:
             citynumber = int(citynumber)
         except:
-            print "Warning:", '"'+str(citynumber)+'"', "is not a correct number!!!\n"
+            print("Warning:", '"'+str(citynumber)+'"', "is not a correct number!!!\n")
             continue
         if citynumber == 0:
-            exit()
+            exit(0)
         elif citynumber > 0 and citynumber <= len(cities):
             city['en'] = cities[citynumber-1][0]
             city['ru'] = cities[citynumber-1][1]
             break
         else:
-            print "Warning:", '"'+str(citynumber)+'"', "is not a correct number of city!!!\n"
+            print("Warning:", '"'+str(citynumber)+'"', "is not a correct number of city!!!\n")
     return city
             
 class dou_parser:
@@ -137,10 +142,10 @@ class dou_parser:
         try:
             company = html.parse(url)
         except Exception:
-            print 'Bad URL: ', url
+            print('Bad URL: ', url)
             return ['Bad URL', '---', '---', '---', '---', url]
         offices = company.xpath("//div[@class='offices']/text()")
-        if len(offices) > 0 and self.city['ru'].decode('utf-8') in offices[0]:
+        if len(offices) > 0 and self.city['ru'] in offices[0]:  # self.city['ru'].decode('utf-8') in Python 2.7
             offices = offices[0].strip()
         else:
             return None
@@ -165,4 +170,3 @@ class dou_parser:
         
 if __name__ == '__main__':
     main()
-
